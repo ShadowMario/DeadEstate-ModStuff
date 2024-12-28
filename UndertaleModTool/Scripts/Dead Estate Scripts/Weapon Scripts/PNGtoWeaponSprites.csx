@@ -16,7 +16,7 @@ if(imgPath == null) return;
 string dimensions = ScriptInputDialog(ScriptPath, "Type MagicaVoxel model dimensions:", "0 0 0", "Cancel", "Import", true, false);
 if(dimensions == null) return;
 
-string spriteName = ScriptInputDialog(ScriptPath, "Type Sprite name (ex. sprHandgun, sprMumbaLauncher):", "sprCustomWeapon" + Data.Sprites.Count, "Cancel", "Continue", true, false);
+string spriteName = ScriptInputDialog(ScriptPath, "Type Sprite name (ex. sprHandgun, sprMumbaLauncher):", "sprWeapon" + Data.Sprites.Count, "Cancel", "Continue", true, false);
 if(spriteName == null) return;
 
 for (int i = 0 ; i < Data.Sprites.Count ; i++)
@@ -50,13 +50,46 @@ if(layers < 1)
 	return;
 }
 
-makeSprites();
+UndertaleSprite spriteCreated = makeSprites();
+
+string gameObjectName = ScriptInputDialog(ScriptPath, "Type Game Object name (ex. oFlameMinigun):", "oWeapon" + Data.GameObjects.Count, "Cancel", "Continue", true, false);
+if(gameObjectName != null && gameObjectName != "gun") //"gun" Failsafe
+{
+	makeWeaponGameObject(spriteCreated);
+}
+else ChangeSelection(spriteCreated, true);
+
 ScriptMessage("Script finished");
 
-void makeSprites()
+
+
+void makeWeaponGameObject(UndertaleSprite spriteCreated)
 {
-	UndertaleSprite newSprite = new UndertaleSprite();
-	newSprite.Name = Data.Strings.MakeString(spriteName);
+	UndertaleGameObject obj = Data.GameObjects.ByName(gameObjectName);
+	if(obj == null)
+	{
+		obj = new UndertaleGameObject();
+		obj.Name = Data.Strings.MakeString(gameObjectName);
+		obj.Sprite = spriteCreated;
+		obj.ParentId = Data.GameObjects.ByName("gun");
+		Data.GameObjects.Add(obj);
+	}
+	obj.Persistent = true;
+	obj.CollisionShape = CollisionShapeFlags.Box;
+	obj.Group = 1;
+	obj.Awake = true;
+	ChangeSelection(obj, true);
+}
+
+UndertaleSprite makeSprites()
+{
+	UndertaleSprite newSprite = Data.Sprites.ByName(spriteName);
+	if(newSprite == null)
+	{
+		newSprite = new UndertaleSprite();
+		newSprite.Name = Data.Strings.MakeString(spriteName);
+		Data.Sprites.Add(newSprite);
+	}
 	newSprite.Width = (uint) columns;
 	newSprite.Height = (uint) rows;
 	newSprite.MarginLeft = 0;
@@ -65,7 +98,10 @@ void makeSprites()
 	newSprite.MarginBottom = rows-1;
 	newSprite.OriginX = (int) Math.Floor((double) columns / 2);
 	newSprite.OriginY = (int) Math.Floor((double) rows / 2);
-	Data.Sprites.Add(newSprite);
+	newSprite.BBoxMode = (uint) 2;
+	newSprite.IsSpecialType = true;
+	newSprite.SVersion = (uint) 3;
+	newSprite.GMS2PlaybackSpeed = 30.0f;
 
 	for (int i = 0 ; i < layers ; i++)
 	{
@@ -88,7 +124,7 @@ void makeSprites()
 		texentry.Texture = newItem;
 		newSprite.Textures.Add(texentry);
 	}
-	ChangeSelection(newSprite, true);
+	return newSprite;
 }
 
 void cloneEmbeddedTexture()
